@@ -49,23 +49,7 @@ void loop() {
 
 void from_nodemcu() {
   delay(2000);
-  StaticJsonBuffer<500> jsonBuffer;
-  JsonObject& data = jsonBuffer.parseObject(arduino);
-
-  if (data == JsonObject::invalid()) {
-    //Serial.println("Invalid Json Object");
-    jsonBuffer.clear();
-    return;
-  }
-
-  Serial.println("JSON Object Recieved");
-  Serial.print("Recieved mA1:  ");
-  float mA1 = data["mA1"];
-  Serial.println(mA1);
-  Serial.print("Recieved mA2:  ");
-  float mA2 = data["mA2"];
-  Serial.println(mA2);
-  Serial.println("-----------------------------------------"); 
+  
 }
 
 void to_nodemcu() {
