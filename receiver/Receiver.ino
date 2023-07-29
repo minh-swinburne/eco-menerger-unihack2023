@@ -56,7 +56,4 @@ void loop() {
   Serial.println("-----------------------------------------");
   Firebase.setDouble(firebaseData, "/Ampere/Amp1/TheValue1",data["mA1"]);
   Firebase.setDouble(firebaseData, "/Ampere/Amp2/TheValue2",data["mA2"]);
-  int a = millis() - currentMillis;
-  Firebase.setDouble(firebaseData, "/Ampere/Amp1/TheTime1", a);
-  Firebase.setDouble(firebaseData, "/Ampere/Amp2/TheTime2", a);
 }
