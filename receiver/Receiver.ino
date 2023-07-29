@@ -18,7 +18,6 @@ FirebaseJson json;
 String dulieu;
 char* ssid = "He";    //enter your wifi name
 char* password = "123456789"; // enter your wifi password
-unsigned long previousMillis = 0;
 
 void setup() {
 
@@ -41,22 +40,23 @@ void setup() {
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
 
   StaticJsonBuffer<1000> jsonBuffer;
   JsonObject& data = jsonBuffer.parseObject(nodemcu);
 
   if (data == JsonObject::invalid()) {
-    //Serial.println("Invalid Json Object");
+    Serial.println("Invalid Json Object");
     jsonBuffer.clear();
     return;
   }
+  
+  String a = data["mA1"];
 
-  Serial.println("JSON Object Recieved");
-  Serial.println("-----------------------------------------");
+  Serial.print(a);
+
   Firebase.setDouble(firebaseData, "/Ampere/Amp1/TheValue1",data["mA1"]);
   Firebase.setDouble(firebaseData, "/Ampere/Amp2/TheValue2",data["mA2"]);
-  int a = millis() - currentMillis;
-  Firebase.setDouble(firebaseData, "/Ampere/Amp1/TheTime1", a);
-  Firebase.setDouble(firebaseData, "/Ampere/Amp2/TheTime2", a);
+
+  Firebase.setDouble(firebaseData, "/Ampere/Amp1/TheTime1", 1.1);
+  Firebase.setDouble(firebaseData, "/Ampere/Amp2/TheTime2", 1.2);
 }
