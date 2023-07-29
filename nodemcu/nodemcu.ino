@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
-#include <Firebase_ESP_Client.h>
+//#include <Firebase_ESP_Client.h>
+#include<FirebaseESP8266.h>
 #include <NTPClient.h>
 #include <SoftwareSerial.h>
 #include <WiFiUdp.h>
@@ -16,20 +17,20 @@
 #define WIFI_SSID "UniHack 2023"
 #define WIFI_PASSWORD "Tech4Env"
 
-// Insert Firebase project API Key
-#define API_KEY "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
-
 // Insert Authorized Email and Corresponding Password
 #define USER_EMAIL "104169617@student.swin.edu.au"
 #define USER_PASSWORD "123456987"
 
 // Insert RTDB URLefine the RTDB URL
 #define DATABASE_URL "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
+// Insert Firebase project API Key
+#define API_KEY "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
 
 // Define Firebase objects
-FirebaseData fbdo;
+FirebaseData fbdo, firebaseData1, firebaseData2;
 FirebaseAuth auth;
 FirebaseConfig config;
+FirebaseJson json;
 
 // Variable to save USER UID
 String uid;
@@ -38,7 +39,7 @@ String sen1Path = "/sensor1";
 String sen2Path = "/sensor2";
 String timePath = "/timestamp";
 String parentPath;
-FirebaseJson json;
+
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
@@ -56,7 +57,7 @@ float mA1, mA2;
 //D6 = Rx & D5 = Tx
 SoftwareSerial nodemcu(D6, D5);
 //D4 = Rx & D3 = Tx
-SoftwareSerial arduino(D4, D3);
+SoftwareSerial arduino(D1, D0);
 
 // Initialize WiFi
 void initWiFi() {
@@ -158,5 +159,25 @@ void from_arduino() {
 }
 
 void to_arduino() {
-  delay(2000);
+  String path1 = "/data1";
+  String path2 = "/data2";
+  Firebase.getDouble(firebaseData1, path1.c_str());
+  Serial.print("Socket 1: ");
+  int switch1 = firebaseData1.doubleData();
+  Serial.println(switch1);
+  Firebase.getDouble(firebaseData2, path2.c_str());
+  Serial.print("Socket 2: ");
+  int switch2 = firebaseData2.doubleData();
+  Serial.println(switch2);
+  
+  StaticJsonBuffer<1000> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+
+  //Assign collected data to JSON Object
+  data["socket1"] = switch1;
+  data["socket2"] = switch2; 
+
+  //Send data to NodeMCU
+  data.printTo(arduino);
+  jsonBuffer.clear();
 }

@@ -7,12 +7,16 @@
 #include <ACS712.h>
 
 //Initialise Arduino to NodeMCU (5=Rx & 6=Tx)
-SoftwareSerial nodemcu(5, 6);
+SoftwareSerial nodemcu(9,10);
 //Initialise NodeMCU to Arduino (7=Rx & 8=Tx)
-SoftwareSerial arduino(7, 8);
+SoftwareSerial arduino(5,6);
 
 #define INPUT1 A0
 #define INPUT2 A5
+#define SOC1 2
+#define SOC2 3
+#define BUT1 12
+#define BUT2 13
 
 ACS712 sensor1(ACS712_05B, INPUT1); //Cảm biến 05B, kết nối chân A0
 ACS712 sensor2(ACS712_05B, INPUT2); //Cảm biến 05B, kết nối chân A5
@@ -22,12 +26,17 @@ ACS712 sensor2(ACS712_05B, INPUT2); //Cảm biến 05B, kết nối chân A5
 
 float tong1, I1, I_TB1, ma1;
 float tong2, I2, I_TB2, ma2;
+boolean state1 = 0, state2 = 0;
 
 void setup() {
   // Initialize Serial port
   Serial.begin(9600);
   nodemcu.begin(9600);
   arduino.begin(9600);
+  pinMode(SOC1, OUTPUT);
+  pinMode(SOC2, OUTPUT);
+  pinMode(BUT1, OUTPUT);
+  pinMode(BUT2, OUTPUT);
   
   // calibrate cảm biến
   // Trong quá trình cali phải đảm bảo KHÔNG có dòng điện đi qua cảm biến
@@ -48,7 +57,7 @@ void loop() {
 }
 
 void from_nodemcu() {
-  delay(2000);
+  delay(1000);
   
 }
 
@@ -66,6 +75,31 @@ void to_nodemcu() {
   //Send data to NodeMCU
   data.printTo(nodemcu);
   jsonBuffer.clear();
+}
+
+void switch_socket()  {
+  int temp1 = digitalRead(BUT1);
+  int temp2 = digitalRead(BUT2);
+  if (temp1 == 1 && state1 == 0)  {
+    change(SOC1);
+  }
+  if (temp2 == 1 && state2 == 0)  {
+    change(SOC2);
+  }
+  state1 = temp1;
+  state2 = temp2;
+}
+
+void change(int c)
+{
+  if(digitalRead(c) == LOW)
+  {
+    digitalWrite(c, HIGH);
+  }
+  else
+  {
+    digitalWrite(c, LOW);
+  }
 }
 
 void acs712_func()  {

@@ -7,8 +7,8 @@ FirebaseJson json;
 #define FIREBASE_HOST "https://smartelectric-d9ea5-default-rtdb.asia-southeast1.firebasedatabase.app/"
 #define FIREBASE_AUTH "NuhdP3ymbVpa7bUOm96VvQ7GKQ1vcGC4nPX7E6OB"
 String dulieu;
-char* ssid = "He";    //enter your wifi name
-char* password = "123456789"; // enter your wifi password
+char* ssid = "UniHack 2023";    //enter your wifi name
+char* password = "Tech4Env"; // enter your wifi password
 
 void setup() {
   Serial.begin(115200);
@@ -33,4 +33,3 @@ void loop() {
   Serial.println(doublefbDta.doubleData());
   delay(100);
 }
-
