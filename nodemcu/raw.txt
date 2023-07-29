@@ -1,11 +1,18 @@
+/*
+  Rui Santos
+  Complete project details at our blog: https://RandomNerdTutorials.com/esp8266-data-logging-firebase-realtime-database/
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+*/
+
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <Firebase_ESP_Client.h>
-#include <NTPClient.h>
-#include <SoftwareSerial.h>
-#include <WiFiUdp.h>
 #include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 // Provide the token generation process info.
 #include "addons/TokenHelper.h"
@@ -13,18 +20,18 @@
 #include "addons/RTDBHelper.h"
 
 // Insert your network credentials
-#define WIFI_SSID "UniHack 2023"
-#define WIFI_PASSWORD "Tech4Env"
+#define WIFI_SSID "REPLACE_WITH_YOUR_SSID"
+#define WIFI_PASSWORD "REPLACE_WITH_YOUR_PASSWORD"
 
 // Insert Firebase project API Key
-#define API_KEY "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
+#define API_KEY "REPLACE_WITH_YOUR_PROJECT_API_KEY"
 
 // Insert Authorized Email and Corresponding Password
-#define USER_EMAIL "104169617@student.swin.edu.au"
-#define USER_PASSWORD "123456987"
+#define USER_EMAIL "REPLACE_WITH_THE_USER_EMAIL"
+#define USER_PASSWORD "REPLACE_WITH_THE_USER_PASSWORD"
 
 // Insert RTDB URLefine the RTDB URL
-#define DATABASE_URL "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define DATABASE_URL "REPLACE_WITH_YOUR_DATABASE_URL"
 
 // Define Firebase objects
 FirebaseData fbdo;
@@ -33,11 +40,18 @@ FirebaseConfig config;
 
 // Variable to save USER UID
 String uid;
+
+// Database main path (to be updated in setup with the user UID)
 String databasePath;
-String sen1Path = "/sensor1";
-String sen2Path = "/sensor2";
+// Database child nodes
+String tempPath = "/temperature";
+String humPath = "/humidity";
+String presPath = "/pressure";
 String timePath = "/timestamp";
+
+// Parent Node (to be updated in every loop)
 String parentPath;
+
 FirebaseJson json;
 
 // Define NTP Client to get time
@@ -47,16 +61,23 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 // Variable to save current epoch time
 int timestamp;
 
+// BME280 sensor
+Adafruit_BME280 bme; // I2C
+float temperature;
+float humidity;
+float pressure;
+
 // Timer variables (send new readings every three minutes)
 unsigned long sendDataPrevMillis = 0;
-unsigned long timerDelay = 300000;
+unsigned long timerDelay = 180000;
 
-float mA1, mA2;
-
-//D6 = Rx & D5 = Tx
-SoftwareSerial nodemcu(D6, D5);
-//D4 = Rx & D3 = Tx
-SoftwareSerial arduino(D4, D3);
+// Initialize BME280
+void initBME(){
+  if (!bme.begin(0x76)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+}
 
 // Initialize WiFi
 void initWiFi() {
@@ -77,46 +98,53 @@ unsigned long getTime() {
   return now;
 }
 
-void setup() {
-  Serial.begin(9600);
+void setup(){
+  Serial.begin(115200);
+
+  // Initialize BME280 sensor
+  initBME();
   initWiFi();
   timeClient.begin();
 
+  // Assign the api key (required)
   config.api_key = API_KEY;
+
+  // Assign the user sign in credentials
   auth.user.email = USER_EMAIL;
   auth.user.password = USER_PASSWORD;
+
+  // Assign the RTDB URL (required)
   config.database_url = DATABASE_URL;
+
   Firebase.reconnectWiFi(true);
   fbdo.setResponseSize(4096);
 
-  config.token_status_callback = tokenStatusCallback;
-  config.max_token_generation_retry = 5;
-  Firebase.begin(&config, &auth);
-  
-  Serial.println("");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  // Assign the callback function for the long running token generation task */
+  config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
 
+  // Assign the maximum retry of token generation
+  config.max_token_generation_retry = 5;
+
+  // Initialize the library with the Firebase authen and config
+  Firebase.begin(&config, &auth);
+
+  // Getting the user UID might take a few seconds
   Serial.println("Getting User UID");
   while ((auth.token.uid) == "") {
-  Serial.print('.');
+    Serial.print('.');
     delay(1000);
   }
-
+  // Print user UID
   uid = auth.token.uid.c_str();
   Serial.print("User UID: ");
   Serial.println(uid);
+
+  // Update database path
   databasePath = "/UsersData/" + uid + "/readings";
-  
-  nodemcu.begin(9600);
-  arduino.begin(9600);
-  delay(1500);
-  while (!Serial) continue;
 }
 
-void loop() {
-  to_arduino();
-  from_arduino();
+void loop(){
+
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
@@ -128,35 +156,10 @@ void loop() {
 
     parentPath= databasePath + "/" + String(timestamp);
 
-    json.set(sen1Path.c_str(), String(mA1));
-    json.set(sen2Path.c_str(), String(mA2));
+    json.set(tempPath.c_str(), String(bme.readTemperature()));
+    json.set(humPath.c_str(), String(bme.readHumidity()));
+    json.set(presPath.c_str(), String(bme.readPressure()/100.0F));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
   }
-}
-
-
-void from_arduino() {
-  delay(2000);
-  StaticJsonBuffer<1000> jsonBuffer;
-  JsonObject& data = jsonBuffer.parseObject(nodemcu);
-
-  if (data == JsonObject::invalid()) {
-    Serial.println("Invalid Json Object");
-    jsonBuffer.clear();
-    return;
-  }
-
-  Serial.println("JSON Object Recieved");
-  Serial.print("Recieved mA1:  ");
-  mA1 = data["mA1"];
-  Serial.println(mA1);
-  Serial.print("Recieved mA2:  ");
-  mA2 = data["mA2"];
-  Serial.println(mA2);
-  Serial.println("-----------------------------------------"); 
-}
-
-void to_arduino() {
-  delay(2000);
 }

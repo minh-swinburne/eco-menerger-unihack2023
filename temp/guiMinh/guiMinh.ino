@@ -34,4 +34,3 @@ void loop() {
   Serial.println(doublefbDta.doubleData());
   delay(100);
 }
-
