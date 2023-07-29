@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 //#include <Firebase_ESP_Client.h>
-#include<FirebaseESP8266.h>
+#include <FirebaseESP8266.h>
 #include <NTPClient.h>
 #include <SoftwareSerial.h>
 #include <WiFiUdp.h>
@@ -56,7 +56,7 @@ float mA1, mA2;
 
 //D6 = Rx & D5 = Tx
 SoftwareSerial nodemcu(D6, D5);
-//D4 = Rx & D3 = Tx
+//D1 = Rx & D0 = Tx
 SoftwareSerial arduino(D1, D0);
 
 // Initialize WiFi
@@ -111,13 +111,16 @@ void setup() {
   
   nodemcu.begin(9600);
   arduino.begin(9600);
-  delay(1500);
   while (!Serial) continue;
 }
 
 void loop() {
   to_arduino();
   from_arduino();
+  upload_data();
+}
+
+void upload_data()  {
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
@@ -136,26 +139,29 @@ void loop() {
   }
 }
 
-
 void from_arduino() {
-  delay(2000);
-  StaticJsonBuffer<1000> jsonBuffer;
-  JsonObject& data = jsonBuffer.parseObject(nodemcu);
-
-  if (data == JsonObject::invalid()) {
-    Serial.println("Invalid Json Object");
-    jsonBuffer.clear();
-    return;
+  char json[] = "{\"nodemcu\":{}}";
+  StaticJsonBuffer<100> jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject(json);
+  if (root.containsKey("nodemcu")) {
+    StaticJsonBuffer<500> jsonBuffer;
+    JsonObject& data = jsonBuffer.parseObject(nodemcu);
+  
+    if (data == JsonObject::invalid()) {
+      Serial.println("Invalid Json Object");
+      jsonBuffer.clear();
+      return;
+    }
+  
+    Serial.println("JSON Object Recieved");
+    Serial.print("Recieved mA1:  ");
+    mA1 = data["mA1"];
+    Serial.println(mA1);
+    Serial.print("Recieved mA2:  ");
+    mA2 = data["mA2"];
+    Serial.println(mA2);
+    Serial.println("-----------------------------------------");
   }
-
-  Serial.println("JSON Object Recieved");
-  Serial.print("Recieved mA1:  ");
-  mA1 = data["mA1"];
-  Serial.println(mA1);
-  Serial.print("Recieved mA2:  ");
-  mA2 = data["mA2"];
-  Serial.println(mA2);
-  Serial.println("-----------------------------------------"); 
 }
 
 void to_arduino() {
@@ -170,7 +176,7 @@ void to_arduino() {
   int switch2 = firebaseData2.doubleData();
   Serial.println(switch2);
   
-  StaticJsonBuffer<1000> jsonBuffer;
+  StaticJsonBuffer<500> jsonBuffer;
   JsonObject& data = jsonBuffer.createObject();
 
   //Assign collected data to JSON Object

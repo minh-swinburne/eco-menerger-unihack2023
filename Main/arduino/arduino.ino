@@ -6,9 +6,9 @@
 #include <ArduinoJson.h>
 #include <ACS712.h>
 
-//Initialise Arduino to NodeMCU (5=Rx & 6=Tx)
+//Initialise Arduino to NodeMCU (9=Rx & 10=Tx)
 SoftwareSerial nodemcu(9,10);
-//Initialise NodeMCU to Arduino (7=Rx & 8=Tx)
+//Initialise NodeMCU to Arduino (5=Rx & 6=Tx)
 SoftwareSerial arduino(5,6);
 
 #define INPUT1 A0
@@ -62,7 +62,7 @@ void from_nodemcu() {
   char json[] = "{\"arduino\":{}}";
   StaticJsonBuffer<100> jsonBuffer;
   JsonObject& root = jsonBuffer.parseObject(json);
-  if (root.containsKey("object2")) {
+  if (root.containsKey("arduino")) {
     StaticJsonBuffer<500> jsonBuffer;
     JsonObject& data = jsonBuffer.parseObject(arduino);
     if (data == JsonObject::invalid()) {
@@ -108,6 +108,7 @@ void to_nodemcu() {
 
   //Send data to NodeMCU
   data.printTo(nodemcu);
+  Serial.println("Data sent to NodeMCU!");
   jsonBuffer.clear();
 }
 
