@@ -1,0 +1,104 @@
+#include <ThingsBoard.h>
+
+#include <ArduinoWiFiServer.h>
+#include <BearSSLHelpers.h>
+#include <CertStoreBearSSL.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiAP.h>
+#include <ESP8266WiFiGeneric.h>
+#include <ESP8266WiFiGratuitous.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiScan.h>
+#include <ESP8266WiFiSTA.h>
+#include <ESP8266WiFiType.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <WiFiServer.h>
+#include <WiFiServerSecure.h>
+#include <WiFiServerSecureBearSSL.h>
+#include <WiFiUdp.h>
+
+#include <Wire.h>
+
+
+#define WIFI_AP "ESP8266"
+#define WIFI_PASSWORD "86868686"
+
+#define TOKEN "ACB_724336_BCD"
+
+char thingsboardServer[] = "thingsboard.cloud";
+
+WiFiClient wifiClient;
+
+ThingsBoard tb(wifiClient);
+
+
+int status = WL_IDLE_STATUS;
+unsigned long lastSend;
+
+
+void setup() {
+ Serial.begin(9600); /* begin serial for debug */
+  delay(10);
+  InitWiFi();
+  lastSend = 0;
+}
+ 
+void loop()
+{
+  if ( !tb.connected() ) {
+    reconnect();
+  }
+
+  if ( millis() - lastSend > 1000 ) { // Update and send only after 1 seconds
+    float humidity = 60.5;
+    Serial.println("Sending data to ThingsBoard:");
+    Serial.print("Humidity: ");
+    Serial.print(humidity);
+    Serial.print(" %\t");
+    tb.sendTelemetryFloat("humidity", humidity);
+    lastSend = millis();
+  }
+
+  tb.loop();
+  yield();
+}
+
+void InitWiFi()
+{
+  Serial.println("Connecting to AP ...");
+  // attempt to connect to WiFi network
+
+  WiFi.begin(WIFI_AP, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected to AP");
+}
+
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!tb.connected()) {
+    status = WiFi.status();
+    if ( status != WL_CONNECTED) {
+      WiFi.begin(WIFI_AP, WIFI_PASSWORD);
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+      }
+      Serial.println("Connected to AP");
+    }
+    Serial.print("Connecting to ThingsBoard node ...");
+    if ( tb.connect(thingsboardServer, TOKEN) ) {
+      Serial.println( "[DONE]" );
+    } else {
+      Serial.print( "[FAILED]" );
+      Serial.println( " : retrying in 5 seconds]" );
+      // Wait 5 seconds before retrying
+      delay( 5000 );
+    }
+  }
+}
