@@ -8,28 +8,18 @@
 #include <WiFiUdp.h>
 #include <Wire.h>
 
-// Provide the token generation process info.
-#include "addons/TokenHelper.h"
-// Provide the RTDB payload printing info and other helper functions.
-#include "addons/RTDBHelper.h"
-
 // Insert your network credentials
 #define WIFI_SSID "UniHack 2023"
 #define WIFI_PASSWORD "Tech4Env"
 
-// Insert Authorized Email and Corresponding Password
-#define USER_EMAIL "104169617@student.swin.edu.au"
-#define USER_PASSWORD "123456987"
-
 // Insert RTDB URLefine the RTDB URL
-#define DATABASE_URL "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define FIREBASE_HOST "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
 // Insert Firebase project API Key
-#define API_KEY "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
+#define FIREBASE_AUTH "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
 
 // Define Firebase objects
 FirebaseData fbdo, firebaseData1, firebaseData2;
-FirebaseAuth auth;
-FirebaseConfig config;
+FirebaseData doublefbDta, firebaseSwitch1, firebaseSwitch2;
 FirebaseJson json;
 
 // Variable to save USER UID
@@ -83,31 +73,16 @@ void setup() {
   initWiFi();
   timeClient.begin();
 
-  config.api_key = API_KEY;
-  auth.user.email = USER_EMAIL;
-  auth.user.password = USER_PASSWORD;
-  config.database_url = DATABASE_URL;
   Firebase.reconnectWiFi(true);
   fbdo.setResponseSize(4096);
 
-  config.token_status_callback = tokenStatusCallback;
-  config.max_token_generation_retry = 5;
-  Firebase.begin(&config, &auth);
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   
   Serial.println("");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  Serial.println("Getting User UID");
-  while ((auth.token.uid) == "") {
-  Serial.print('.');
-    delay(1000);
-  }
-
-  uid = auth.token.uid.c_str();
-  Serial.print("User UID: ");
-  Serial.println(uid);
-  databasePath = "/UsersData/" + uid + "/readings";
+  databasePath = "/UsersData/Current/readings";
   
   nodemcu.begin(9600);
   arduino.begin(9600);
@@ -118,6 +93,9 @@ void loop() {
   to_arduino();
   from_arduino();
   upload_data();
+  Firebase.getDouble(doublefbDta, "/data");
+  Serial.print("smth: ");
+  Serial.println(doublefbDta.doubleData());
 }
 
 void upload_data()  {
@@ -132,7 +110,8 @@ void upload_data()  {
 
     parentPath= databasePath + "/" + String(timestamp);
 
-    json.set(sen1Path.c_str(), String(mA1));
+    Firebase.setDouble(firebaseData1, parentPath + sen1Path, mA1);
+//    Firebase.setDouble(firebaseData2, parentPath + sen2Path, mA2);
     json.set(sen2Path.c_str(), String(mA2));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
