@@ -135,6 +135,109 @@ void acs712_func()  {
   for (int i=0; i<=100; i++)
   {
     I1 = sensor1.getCurrentAC(); //Đo dòng AC
+    //Serial.print("I = "); Serial.print(I); Serial.print("   ");
+    tong1 = tong1 + I1;
+    //Serial.print("Tổng = "); Serial.println(tong);
+  }
+  I_TB1 = tong1/100;
+  tong1 = 0;
+  //Serial.print("\t\t\t");
+  Serial.print("I1 = "); Serial.print(I_TB1); Serial.print("A"); Serial.print("   ");
+  ma1 = I_TB1 * 1000;   
+  Serial.print("mA1 = "); Serial.print(ma1); Serial.println("mA");
+
+  for (int i=0; i <= 100; i++)
+  {
+    I2 = sensor2.getCurrentAC(); //Đo dòng AC
+    //Serial.print("I = "); Serial.print(I); Serial.print("   ");
+    tong2 = tong2 + I2;
+    //Serial.print("Tổng = "); Serial.println(tong);
+  }
+  I_TB2 = tong2/100;
+  tong2 = 0;
+  //Serial.print("\t\t\t");
+  Serial.print("I2 = "); Serial.print(I_TB2); Serial.print("A"); Serial.print("   ");
+  ma2 = I_TB2 * 1000;   
+  Serial.print("mA2 = "); Serial.print(ma2); Serial.println("mA");
+}
+
+void from_nodemcu() {
+  char json[] = "{\"arduino\":{}}";
+  StaticJsonBuffer<100> jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject(json);
+  if (root.containsKey("arduino")) {
+    StaticJsonBuffer<500> jsonBuffer;
+    JsonObject& data = jsonBuffer.parseObject(arduino);
+    if (data == JsonObject::invalid()) {
+    Serial.println("Invalid Json Object");
+    jsonBuffer.clear();
+    return;
+  }
+
+    Serial.println("JSON Object Recieved");
+    Serial.print("Recieved Socket 1 switch:  ");
+    int switch1 = data["socket1"];
+    Serial.println(switch1);
+    if ((abs(record1 - switch1) % 2) != 0)  {
+      change(SOC1);
+      Serial.println("Switched Socket 1!");
+    }
+    Serial.print("Recieved Socket 2 switch:  ");
+    int switch2 = data["socket2"];
+    Serial.println(switch2);
+    Serial.println("-----------------------------------------");
+    if((abs(record2 - switch2) % 2) != 0)  {
+      change(SOC2);
+      Serial.println("Switched Socket 2!");
+    }
+
+    record1 = switch1;
+    record2 = switch2;
+  }
+}
+
+void to_nodemcu() {
+  StaticJsonBuffer<500> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+
+  //Obtain Soil Moisture data
+  acs712_func();
+
+  //Assign collected data to JSON Object
+  data["mA1"] = ma1;
+  data["mA2"] = ma2; 
+  data["socket1"] = digitalRead(SOC1);
+  data["socket2"] = digitalRead(SOC2); 
+
+  //Send data to NodeMCU
+  data.printTo(nodemcu);
+  Serial.println("Data sent to NodeMCU!");
+  jsonBuffer.clear();
+}
+
+void switch_socket1()  {
+   change(SOC1);
+}
+void switch_socket2()  {
+   change(SOC2);
+}
+
+void change(int c)
+{
+  if(digitalRead(c) == LOW)
+  {
+    digitalWrite(c, HIGH);
+  }
+  else
+  {
+    digitalWrite(c, LOW);
+  }
+}
+
+void acs712_func()  {
+  for (int i=0; i<=100; i++)
+  {
+    I1 = sensor1.getCurrentAC(); //Đo dòng AC
     Serial.print("I = "); Serial.print(I1); Serial.print("   ");
     tong1 = tong1 + I1;
     Serial.print("Tổng = "); Serial.println(tong1);

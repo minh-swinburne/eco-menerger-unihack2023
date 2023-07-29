@@ -1,35 +1,26 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
-#include <Firebase_ESP_Client.h>
+//#include <Firebase_ESP_Client.h>
+#include <FirebaseESP8266.h>
 #include <NTPClient.h>
 #include <SoftwareSerial.h>
 #include <WiFiUdp.h>
 #include <Wire.h>
 
-// Provide the token generation process info.
-#include "addons/TokenHelper.h"
-// Provide the RTDB payload printing info and other helper functions.
-#include "addons/RTDBHelper.h"
-
 // Insert your network credentials
 #define WIFI_SSID "UniHack 2023"
 #define WIFI_PASSWORD "Tech4Env"
 
-// Insert Firebase project API Key
-#define API_KEY "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
-
-// Insert Authorized Email and Corresponding Password
-#define USER_EMAIL "104169617@student.swin.edu.au"
-#define USER_PASSWORD "123456987"
-
 // Insert RTDB URLefine the RTDB URL
-#define DATABASE_URL "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define FIREBASE_HOST "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
+// Insert Firebase project API Key
+#define FIREBASE_AUTH "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
 
 // Define Firebase objects
-FirebaseData fbdo;
-FirebaseAuth auth;
-FirebaseConfig config;
+FirebaseData fbdo, firebaseData1, firebaseData2;
+FirebaseData doublefbDta, firebaseSwitch1, firebaseSwitch2;
+FirebaseJson json;
 
 // Variable to save USER UID
 String uid;
@@ -38,7 +29,7 @@ String sen1Path = "/sensor1";
 String sen2Path = "/sensor2";
 String timePath = "/timestamp";
 String parentPath;
-FirebaseJson json;
+
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
@@ -55,8 +46,8 @@ float mA1, mA2;
 
 //D6 = Rx & D5 = Tx
 SoftwareSerial nodemcu(D6, D5);
-//D4 = Rx & D3 = Tx
-SoftwareSerial arduino(D4, D3);
+//D1 = Rx & D0 = Tx
+SoftwareSerial arduino(D1, D0);
 
 // Initialize WiFi
 void initWiFi() {
@@ -82,41 +73,32 @@ void setup() {
   initWiFi();
   timeClient.begin();
 
-  config.api_key = API_KEY;
-  auth.user.email = USER_EMAIL;
-  auth.user.password = USER_PASSWORD;
-  config.database_url = DATABASE_URL;
   Firebase.reconnectWiFi(true);
   fbdo.setResponseSize(4096);
 
-  config.token_status_callback = tokenStatusCallback;
-  config.max_token_generation_retry = 5;
-  Firebase.begin(&config, &auth);
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   
   Serial.println("");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  Serial.println("Getting User UID");
-  while ((auth.token.uid) == "") {
-  Serial.print('.');
-    delay(1000);
-  }
-
-  uid = auth.token.uid.c_str();
-  Serial.print("User UID: ");
-  Serial.println(uid);
-  databasePath = "/UsersData/" + uid + "/readings";
+  databasePath = "/UsersData/Current/readings";
   
   nodemcu.begin(9600);
   arduino.begin(9600);
-  delay(1500);
   while (!Serial) continue;
 }
 
 void loop() {
   to_arduino();
   from_arduino();
+  upload_data();
+  Firebase.getDouble(doublefbDta, "/data");
+  Serial.print("smth: ");
+  Serial.println(doublefbDta.doubleData());
+}
+
+void upload_data()  {
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
@@ -128,35 +110,59 @@ void loop() {
 
     parentPath= databasePath + "/" + String(timestamp);
 
-    json.set(sen1Path.c_str(), String(mA1));
+    Firebase.setDouble(firebaseData1, parentPath + sen1Path, mA1);
+//    Firebase.setDouble(firebaseData2, parentPath + sen2Path, mA2);
     json.set(sen2Path.c_str(), String(mA2));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
   }
 }
 
-
 void from_arduino() {
-  delay(2000);
-  StaticJsonBuffer<1000> jsonBuffer;
-  JsonObject& data = jsonBuffer.parseObject(nodemcu);
-
-  if (data == JsonObject::invalid()) {
-    Serial.println("Invalid Json Object");
-    jsonBuffer.clear();
-    return;
+  char json[] = "{\"nodemcu\":{}}";
+  StaticJsonBuffer<100> jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject(json);
+  if (root.containsKey("nodemcu")) {
+    StaticJsonBuffer<500> jsonBuffer;
+    JsonObject& data = jsonBuffer.parseObject(nodemcu);
+  
+    if (data == JsonObject::invalid()) {
+      Serial.println("Invalid Json Object");
+      jsonBuffer.clear();
+      return;
+    }
+  
+    Serial.println("JSON Object Recieved");
+    Serial.print("Recieved mA1:  ");
+    mA1 = data["mA1"];
+    Serial.println(mA1);
+    Serial.print("Recieved mA2:  ");
+    mA2 = data["mA2"];
+    Serial.println(mA2);
+    Serial.println("-----------------------------------------");
   }
-
-  Serial.println("JSON Object Recieved");
-  Serial.print("Recieved mA1:  ");
-  mA1 = data["mA1"];
-  Serial.println(mA1);
-  Serial.print("Recieved mA2:  ");
-  mA2 = data["mA2"];
-  Serial.println(mA2);
-  Serial.println("-----------------------------------------"); 
 }
 
 void to_arduino() {
-  delay(2000);
+  String path1 = "/data1";
+  String path2 = "/data2";
+  Firebase.getDouble(firebaseData1, path1.c_str());
+  Serial.print("Socket 1: ");
+  int switch1 = firebaseData1.doubleData();
+  Serial.println(switch1);
+  Firebase.getDouble(firebaseData2, path2.c_str());
+  Serial.print("Socket 2: ");
+  int switch2 = firebaseData2.doubleData();
+  Serial.println(switch2);
+  
+  StaticJsonBuffer<500> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+
+  //Assign collected data to JSON Object
+  data["socket1"] = switch1;
+  data["socket2"] = switch2; 
+
+  //Send data to NodeMCU
+  data.printTo(arduino);
+  jsonBuffer.clear();
 }
