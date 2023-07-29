@@ -53,7 +53,7 @@ void from_nodemcu() {
 }
 
 void to_nodemcu() {
-  StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonBuffer<1000> jsonBuffer;
   JsonObject& data = jsonBuffer.createObject();
 
   //Obtain Soil Moisture data
