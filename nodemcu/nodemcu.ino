@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
-//#include <Firebase_ESP_Client.h>
 #include <FirebaseESP8266.h>
 #include <NTPClient.h>
 #include <SoftwareSerial.h>
@@ -13,17 +12,15 @@
 #define WIFI_PASSWORD "Tech4Env"
 
 // Insert RTDB URLefine the RTDB URL
-#define FIREBASE_HOST "https://eco-menerger-unihack2023-default-rtdb.asia-southeast1.firebasedatabase.app/"
-// Insert Firebase project API Key
-#define FIREBASE_AUTH "AIzaSyCD4XOn8FrLJuDBhiuOpja8KQZmJr7boBc"
+#define FIREBASE_HOST "https://gotchu-babi-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define FIREBASE_AUTH "pLiQSnREiaWibCedHOoAmzXJkZ1wKNr835SfaZUe"
 
 // Define Firebase objects
 FirebaseData fbdo, firebaseData1, firebaseData2;
-FirebaseData doublefbDta, firebaseSwitch1, firebaseSwitch2;
+FirebaseData firebaseSwitch1, firebaseSwitch2;
 FirebaseJson json;
 
 // Variable to save USER UID
-String uid;
 String databasePath;
 String sen1Path = "/sensor1";
 String sen2Path = "/sensor2";
@@ -72,7 +69,7 @@ void setup() {
   Serial.begin(9600);
   initWiFi();
   timeClient.begin();
-
+  
   Firebase.reconnectWiFi(true);
   fbdo.setResponseSize(4096);
 
@@ -82,23 +79,20 @@ void setup() {
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  databasePath = "/UsersData/Current/readings";
-  
+  databasePath = "/UsersData/Minh/readings";
   nodemcu.begin(9600);
   arduino.begin(9600);
-  while (!Serial) continue;
+  delay(1000);
 }
 
 void loop() {
   to_arduino();
   from_arduino();
   upload_data();
-  Firebase.getDouble(doublefbDta, "/data");
-  Serial.print("smth: ");
-  Serial.println(doublefbDta.doubleData());
 }
 
 void upload_data()  {
+  
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
@@ -110,8 +104,7 @@ void upload_data()  {
 
     parentPath= databasePath + "/" + String(timestamp);
 
-    Firebase.setDouble(firebaseData1, parentPath + sen1Path, mA1);
-//    Firebase.setDouble(firebaseData2, parentPath + sen2Path, mA2);
+    json.set(sen1Path.c_str(), String(mA1));
     json.set(sen2Path.c_str(), String(mA2));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
@@ -119,11 +112,8 @@ void upload_data()  {
 }
 
 void from_arduino() {
-  char json[] = "{\"nodemcu\":{}}";
-  StaticJsonBuffer<100> jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
-  if (root.containsKey("nodemcu")) {
-    StaticJsonBuffer<500> jsonBuffer;
+  delay(1000);  
+    StaticJsonBuffer<1000> jsonBuffer;
     JsonObject& data = jsonBuffer.parseObject(nodemcu);
   
     if (data == JsonObject::invalid()) {
@@ -140,7 +130,6 @@ void from_arduino() {
     mA2 = data["mA2"];
     Serial.println(mA2);
     Serial.println("-----------------------------------------");
-  }
 }
 
 void to_arduino() {
@@ -155,7 +144,7 @@ void to_arduino() {
   int switch2 = firebaseData2.doubleData();
   Serial.println(switch2);
   
-  StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonBuffer<1500> jsonBuffer;
   JsonObject& data = jsonBuffer.createObject();
 
   //Assign collected data to JSON Object
