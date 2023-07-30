@@ -1,0 +1,19 @@
+<div class="my-3">
+  <div class="pt-4">
+    <h2 class="text-white">Energy Dashboard</h2>
+  </div>
+    <apx-chart *ngFor="let device of listDevice; let i = index"
+      [series]="device.series"
+      [chart]="device.chart"
+      [dataLabels]="device.dataLabels"
+      [markers]="device.markers"
+      [title]="device.title"
+      [fill]="device.fill"
+      [stroke]="device.stroke"
+      [yaxis]="device.yaxis"
+      [xaxis]="device.xaxis"
+      [tooltip]="device.tooltip"
+      [autoUpdateSeries]="true"
+    >
+    </apx-chart>
+</div>

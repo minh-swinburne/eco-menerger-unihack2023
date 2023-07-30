@@ -1,0 +1,64 @@
+<div>
+  <div class="container-fluid">
+    <div class="row flex-xl-nowrap">
+      <div id="nav" class="col-md-3 col-xl-2b bg-transparent">
+        <div class="row">
+          <div class="col-md-12 col-8">
+            <div class="text-sm-left text-md-center logo">
+            <img src="../../assets/images/leaf.png" style="width: 30px; height: 30px" alt="">eco-<span id="beta" class="fw-bold" style="color: #D1F248;"> MENERGER</span>
+            </div>
+          </div>
+          <div class="col-md-12 col-4 text-right bg-transparent">
+            <button
+              class="btn btn-link bd-search-docs-toggle d-md-none p-0 ml-3 collapsed"
+              type="button"
+              data-toggle="collapse"
+              data-target="#bd-docs-nav"
+              aria-controls="bd-docs-nav"
+              aria-expanded="false"
+              aria-label="Toggle docs navigation"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 30 30"
+                width="30"
+                height="30"
+                focusable="false"
+              >
+                <title>Menu</title>
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeMiterlimit="10"
+                  d="M4 7h22M4 15h22M4 23h22"
+                ></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <nav class="collapse bd-links" id="bd-docs-nav">
+          <!-- <OptionList /> -->
+          <ul class="left-options">
+            <li
+              class="left-option"
+              *ngFor="let item of navigators"
+              [id]="item.name"
+            >
+              <img [src]="item.svgPath" />
+              <a [href]="item.path">
+                {{ item.name }}
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="pl-4 pr-4 col-md-9 bd-content bg-transparent">
+        <div class="container main__container scrollable-y-container scrollable-hidden">
+            <router-outlet></router-outlet>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

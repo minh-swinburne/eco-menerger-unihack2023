@@ -1,0 +1,93 @@
+<div class="container">
+  <h3 class="text-white mt-3">Hello, Admin!</h3>
+  <p class="text-white">Save energy with our product</p>
+</div>
+
+<div class="row">
+  <div class="row p-0 m-0-auto">
+    <div class="col-md-4">
+      <div class="morphi card text-center">
+        <div class="card-header text-white">Device</div>
+        <div class="card-body">
+          <h5 class="card-title title-highlight">Set time to Device 1</h5>
+          <p class="card-text text-light fs-6 fw-light">
+            Remaining usage time to the device.
+          </p>
+          <button
+            class="btn btn-primary"
+            (click)="toggleStatus()"
+          >
+            Turn off device
+          </button>
+        </div>
+        <div class="card-footer text-white fs-bold">{{dateTime ?? "00:00:00"}}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="morphi card text-center">
+        <div class="card-header text-white">Device</div>
+        <div class="card-body">
+          <h5 class="card-title title-highlight">Set time to Device 2</h5>
+          <p class="card-text text-light fs-6 fw-light">
+            Remaining usage time to the device.
+          </p>
+          <button
+            class="btn btn-primary"
+            (click)="toggleStatus()"
+          >
+            Turn off device
+          </button>
+        </div>
+        <div class="card-footer text-white fs-bold">00:00:30</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- <div class="progress-circle">
+  <span class="progress-value" (click)="toggleState()">{{
+    isOff ? "Start" : "Stop"
+  }}</span>
+  <svg>
+    <circle class="progress-back" cx="50%" cy="50%" r="40"></circle>
+    <circle class="progress-front" cx="50%" cy="50%" r="40"></circle>
+  </svg>
+</div> -->
+
+<div
+  class="modal fade"
+  id="staticBackdrop"
+  data-bs-backdrop="static"
+  data-bs-keyboard="false"
+  tabindex="-1"
+  aria-labelledby="staticBackdropLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Modal title</h1>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <input
+          type="datetime-local"
+          placeholder="Choose time to turn off device!"
+          [(ngModel)]="dateTime"
+        />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-dark" data-bs-dismiss="modal">
+          Close
+        </button>
+        <button (click)="addReport()" data-bs-dismiss="modal" type="button" class="btn btn-primary">Understood</button>
+      </div>
+    </div>
+  </div>
+</div>
+

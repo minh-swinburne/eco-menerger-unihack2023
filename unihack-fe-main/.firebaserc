@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "smartelectric-d9ea5": {
+      "hosting": {
+        "unihack": [
+          "smartelectric-d9ea5"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "smartelectric-d9ea5"
+  }
+}

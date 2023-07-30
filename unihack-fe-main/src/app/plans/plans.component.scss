@@ -1,0 +1,24 @@
+
+.morphi {
+    background: rgba(0, 0, 0, 0.75);
+    box-shadow: 0 8px 32px 0 #D1F24810;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 10px;
+}
+
+.title-highlight {
+    color: #D1F248;
+}
+
+.btn-primary {
+    background-color: #D1F248;
+    border: 0px;
+    color: #000;
+    :active {
+        background-color: #697e16;
+    }
+    :hover {
+        background-color: #697e16;
+    }
+}
